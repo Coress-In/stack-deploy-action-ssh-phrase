@@ -83,7 +83,11 @@ else
         # ssh-add can use the SSH_ASKPASS program to get a passphrase.
         # We create a temporary script that just echoes our passphrase.
         SSH_ASKPASS_SCRIPT="/tmp/askpass.sh"
-        echo "echo \"${INPUT_SSH_PASSPHRASE}\"" > "${SSH_ASKPASS_SCRIPT}"
+        
+        # ***** THE FIX IS HERE *****
+        # This line now adds `#!/bin/sh` to make the script executable.
+        echo -e "#!/bin/sh\necho \"${INPUT_SSH_PASSPHRASE}\"" > "${SSH_ASKPASS_SCRIPT}"
+        
         chmod +x "${SSH_ASKPASS_SCRIPT}"
 
         # Set SSH_ASKPASS and DISPLAY, then call ssh-add.
