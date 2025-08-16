@@ -77,7 +77,24 @@ else
     echo "${INPUT_SSH_KEY}" > "${SSH_DIR}/id_rsa"
     chmod 0600 "${SSH_DIR}/id_rsa"
     eval "$(ssh-agent -s)"
-    ssh-add "${SSH_DIR}/id_rsa"
+
+    if [[ -n "${INPUT_SSH_PASSPHRASE}" ]]; then
+        echo "::debug::Using SSH passphrase to add key"
+        # ssh-add can use the SSH_ASKPASS program to get a passphrase.
+        # We create a temporary script that just echoes our passphrase.
+        SSH_ASKPASS_SCRIPT="/tmp/askpass.sh"
+        echo "echo \"${INPUT_SSH_PASSPHRASE}\"" > "${SSH_ASKPASS_SCRIPT}"
+        chmod +x "${SSH_ASKPASS_SCRIPT}"
+
+        # Set SSH_ASKPASS and DISPLAY, then call ssh-add.
+        # 'setsid' ensures ssh-add doesn't have a controlling tty, forcing it to use SSH_ASKPASS.
+        export SSH_ASKPASS="${SSH_ASKPASS_SCRIPT}"
+        export DISPLAY=':0'
+        setsid ssh-add "${SSH_DIR}/id_rsa" < /dev/null
+    else
+        echo "::debug::Adding SSH key without passphrase"
+        ssh-add "${SSH_DIR}/id_rsa"
+    fi
 fi
 echo "::endgroup::"
 
@@ -166,7 +183,7 @@ if [[ "${INPUT_MODE}" == "swarm" ]];then
     COMMAND=("docker" "stack" "deploy" "-c" "${INPUT_FILE}" "${EXTRA_ARGS[@]}" "${INPUT_NAME}")
 else
     DEPLOY_TYPE="Compose"
-    COMMAND=("docker" "compose" "-f" "${INPUT_FILE}" "-p" "${INPUT_NAME}" "up" "-d" "-y" "${EXTRA_ARGS[@]}")
+    COMMAND=("docker" "compose" "-f" "${INPUT_FILE}" "-p" "${INPUT_NAME}" "up" "-d" "${EXTRA_ARGS[@]}")
 fi
 
 echo -e "::group::Deploying Docker ${DEPLOY_TYPE} Stack: \u001b[36;1m${INPUT_NAME}"
