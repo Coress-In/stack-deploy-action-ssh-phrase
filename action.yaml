@@ -37,6 +37,9 @@ inputs:
   ssh_key:
     description: "Remote SSH Key File"
     required: false
+  ssh_passphrase:
+    description: "SSH Key Passphrase"
+    required: false
   env_file:
     description: "Environment File"
     required: false
